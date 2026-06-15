@@ -121,3 +121,21 @@ CREATE POLICY tenant_isolation_documents ON documents
    USING hnsw (embedding vector_cosine_ops)
    WITH (m = 16, ef_construction = 64);
 */
+
+-- ----------------------------------------------------------------------------
+-- 6. APPLICATION ROLE SETUP (Mandatory to enforce Row-Level Security)
+-- ----------------------------------------------------------------------------
+
+-- Create non-superuser role to connect from the FastAPI application.
+-- Postgres superusers (e.g. 'postgres') bypass RLS policies even with FORCE RLS enabled.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'docuops_user') THEN
+        CREATE ROLE docuops_user WITH LOGIN PASSWORD 'password123';
+    END IF;
+END
+$$;
+
+-- Grant permissions to the RLS app user on the public schema tables
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO docuops_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO docuops_user;
