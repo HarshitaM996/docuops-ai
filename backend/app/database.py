@@ -2,9 +2,11 @@ import contextlib
 from sqlalchemy import create_engine, Column, String, ForeignKey, DateTime, Text, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi import Header, HTTPException
 from app.config import settings
 import datetime
+
 
 # Setup SQLAlchemy database engine
 # Aurora PostgreSQL/Postgres engine setup
@@ -53,6 +55,9 @@ class DocumentChunk(Base):
 # Database Session Dependencies with Row-Level Security (RLS)
 # ----------------------------------------------------------------------------
 
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 @contextlib.contextmanager
 def get_db_context(tenant_id: str):
     """
@@ -95,11 +100,15 @@ def get_db(x_tenant_id: str = Header(..., alias="X-Tenant-ID")):
         )
         yield db
         db.commit()
+    except (StarletteHTTPException, RequestValidationError) as pass_through_exc:
+        db.rollback()
+        raise pass_through_exc
+    except SQLAlchemyError as db_exc:
+        db.rollback()
+        raise db_exc
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail=f"Database transaction error: {str(e)}"
-        )
+        raise e
     finally:
         db.close()
+

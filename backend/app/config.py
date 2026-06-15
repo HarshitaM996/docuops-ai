@@ -8,5 +8,8 @@ class Settings:
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "mock-openai-key")
     PROJECT_NAME: str = "DocuOps AI Backend"
     API_VERSION: str = "v1"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
 
 settings = Settings()
+
